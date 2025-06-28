@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pandas
+numpy
+plotly
+requests
+google-generativeai
+scikit-learn
+openai
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+streamlit
