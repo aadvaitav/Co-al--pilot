@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coal Mine Carbon Neutrality Co-Pilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .dashboard-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 256px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+        
+        .animate-slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        .animate-bounce-in {
+            animation: bounceIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .metric-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .nav-item {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item:hover {
+            background: rgba(34, 197, 94, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .nav-item.active {
+            background: rgba(34, 197, 94, 0.2);
+            border-right: 3px solid #22c55e;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #22c55e;
+            border-radius: 3px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .user-badge {
+            background: #007bff;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        
+        .admin-badge {
+            background: #dc3545;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        
+        .chat-message {
+            background: #f0f2f6;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+        }
+        
+        .realtime-data {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div class="animate-bounce-in bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <i data-lucide="zap" class="w-8 h-8 text-green-600"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Coal Mine Carbon Neutrality Co-Pilot</h1>
+                <p class="text-gray-600">Secure Login Portal</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                    <input type="text" id="username" required 
+                           class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                           placeholder="Enter username">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="password" required 
+                           class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                           placeholder="Enter password">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors duration-200 transform hover:scale-105">
+                    Sign In
+                </button>
+                
+                <div class="text-center text-sm text-gray-500 mt-4">
+                    <p class="font-medium">Test Accounts:</p>
+                    <p>user1 / user1</p>
+                    <p>user2 / user2</p>
+                    <p>user3 / user3</p>
+                    <p>admin / admin</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden dashboard-container bg-gray-50">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="zap" class="w-6 h-6 text-green-600"></i>
+                        <h1 class="text-xl font-bold text-gray-900">Coal Mine Carbon Neutrality Co-Pilot</h1>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-2">
+                        <span class="user-badge" id="userBadge">
+                            User Dashboard
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button id="refreshBtn" class="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors flex items-center">
+                        <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                        Refresh
+                    </button>
+                    <button id="logoutBtn" class="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors flex items-center">
+                        <i data-lucide="log-out" class="w-4 h-4 mr-2"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar bg-white border-r border-gray-200 custom-scrollbar">
+                <nav class="p-4 space-y-2">
+                    <button class="nav-item active w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('overview')">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-green-600"></i>
+                        <span class="font-medium text-gray-900">📊 Dashboard</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('improvements')">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">📋 Improvements</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('ai')">
+                        <i data-lucide="bot" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">🤖 AI Assistant</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('scenarios')">
+                        <i data-lucide="compass" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">🎯 Scenarios</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('insights')">
+                        <i data-lucide="lightbulb" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">📋 Insights</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('leaderboard')">
+                        <i data-lucide="trophy" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">🏆 Leaderboard</span>
+                    </button>
+                    
+                    <button class="nav-item w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg" onclick="showTab('realtime')">
+                        <i data-lucide="activity" class="w-5 h-5 text-gray-600"></i>
+                        <span class="font-medium text-gray-700">📡 Real-time</span>
+                    </button>
+                </nav>
+                
+                <!-- Configuration -->
+                <div class="p-4 border-t border-gray-200">
+                    <h3 class="font-medium text-gray-900 mb-3 flex items-center">
+                        <i data-lucide="settings" class="w-4 h-4 mr-2"></i>
+                        Configuration
+                    </h3>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">OpenRouter API Key</label>
+                        <input type="password" id="openRouterKey" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Get your API key from openrouter.ai</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                        <input type="password" id="geminiKey" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Upload Dataset</label>
+                        <div class="relative border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                            <input type="file" id="fileUploadInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            <div class="flex flex-col items-center">
+                                <i data-lucide="upload" class="w-6 h-6 text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-600">Click to upload CSV/XLSX</p>
+                                <p class="text-xs text-gray-500">Max file size: 10MB</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="loadSyntheticDataBtn" class="w-full bg-gray-800 text-white py-2 rounded-lg text-sm flex items-center justify-center">
+                        <i data-lucide="database" class="w-4 h-4 mr-2"></i>
+                        Load Synthetic Data
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="content-area">
+                <!-- Overview Tab -->
+                <div id="overview" class="tab-content active animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">📊 Your Carbon Intelligence Dashboard</h2>
+                        <p class="text-gray-600">Real-time insights into your mining operations</p>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 mb-1">Total Production</p>
+                                    <p class="text-2xl font-bold text-gray-900">45,250 MT</p>
+                                    <p class="text-sm text-green-600 mt-1">+8.2% from last month</p>
+                                </div>
+                                <div class="p-3 bg-green-100 rounded-lg">
+                                    <i data-lucide="truck" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 mb-1">Total Emissions</p>
+                                    <p class="text-2xl font-bold text-gray-900">38,150 MT CO₂</p>
+                                    <p class="text-sm text-red-600 mt-1">+2.1% from last month</p>
+                                </div>
+                                <div class="p-3 bg-red-100 rounded-lg">
+                                    <i data-lucide="cloud" class="w-6 h-6 text-red-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 mb-1">Emission Intensity</p>
+                                    <p class="text-2xl font-bold text-gray-900">0.843</p>
+                                    <p class="text-sm text-green-600 mt-1">-5.3% improvement</p>
+                                </div>
+                                <div class="p-3 bg-blue-100 rounded-lg">
+                                    <i data-lucide="gauge" class="w-6 h-6 text-blue-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600 mb-1">Green Score</p>
+                                    <p class="text-2xl font-bold text-gray-900">72.4</p>
+                                    <p class="text-sm text-green-600 mt-1">+4.2 points</p>
+                                </div>
+                                <div class="p-3 bg-green-100 rounded-lg">
+                                    <i data-lucide="leaf" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Emissions by Mine</h3>
+                            <div class="chart-container">
+                                <canvas id="emissionsByMineChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Green Score vs Emission Intensity</h3>
+                            <div class="chart-container">
+                                <canvas id="greenScoreChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mine Details -->
+                    <div id="mineDetail" class="hidden bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Mine Details</h3>
+                        <div id="mineDetailContent"></div>
+                    </div>
+                </div>
+
+                <!-- Improvements Tab -->
+                <div id="improvements" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">📋 Improvement Insights & Roadmap</h2>
+                        <p class="text-gray-600">Actionable recommendations for carbon reduction</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Wins & Automated Suggestions</h3>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <div class="flex items-start space-x-3">
+                                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 mt-0.5"></i>
+                                        <div>
+                                            <h4 class="font-medium text-red-900">High Emission Intensity</h4>
+                                            <p class="text-sm text-gray-700 mt-1">Mines: Gevra OC Mine #3, North Karanpura UG #1, Rajmahal Mixed Mine #2</p>
+                                            <p class="text-sm text-red-700 mt-2">Focus on operational efficiency improvements and renewable energy adoption</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div class="flex items-start space-x-3">
+                                        <i data-lucide="map" class="w-5 h-5 text-yellow-600 mt-0.5"></i>
+                                        <div>
+                                            <h4 class="font-medium text-yellow-900">Transport Optimization</h4>
+                                            <p class="text-sm text-gray-700 mt-1">Mines: Talcher OC Field #4, Ib Valley UG Mine #7</p>
+                                            <p class="text-sm text-yellow-700 mt-2">Consider rail transport, electric vehicles, or local processing facilities</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <div class="flex items-start space-x-3">
+                                        <i data-lucide="minimize-2" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                                        <div>
+                                            <h4 class="font-medium text-green-900">OC Mine Optimization</h4>
+                                            <p class="text-sm text-gray-700 mt-1">Mines: Jharia OC Mine #1, Kusmunda UG #9</p>
+                                            <p class="text-sm text-green-700 mt-2">Electrify heavy machinery and optimize haul road management</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">🤖 AI-Powered Carbon Reduction Roadmap</h3>
+                            <div class="p-4 bg-gray-50 rounded-lg mb-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">Gemini API Key Status:</span>
+                                    <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Not Configured</span>
+                                </div>
+                                <p class="text-xs text-gray-600 mt-2">Please provide Gemini API key to generate roadmap</p>
+                            </div>
+                            
+                            <div class="border border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <i data-lucide="file-text" class="w-12 h-12 text-gray-400 mx-auto mb-4"></i>
+                                <h4 class="font-medium text-gray-900 mb-1">Generate Improvement Roadmap</h4>
+                                <p class="text-sm text-gray-600 mb-4">AI-powered carbon reduction strategy tailored to your mines</p>
+                                <button id="generateRoadmapBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center mx-auto">
+                                    <i data-lucide="sparkles" class="w-4 h-4 mr-2"></i>
+                                    Generate with Gemini
+                                </button>
+                            </div>
+                            <div id="roadmapOutput" class="mt-4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Assistant Tab -->
+                <div id="ai" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">🤖 AI Carbon Assistant</h2>
+                        <p class="text-gray-600">Ask questions about your emissions data</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                        <button class="ai-suggestion-btn bg-white p-4 rounded-lg border border-gray-200 hover:border-green-500 transition-colors text-left">
+                            <div class="flex items-center">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm mr-3">1</span>
+                                <span class="font-medium">Top Emission Sources</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">What are my top 3 emission sources and how can I reduce them?</p>
+                        </button>
+                        
+                        <button class="ai-suggestion-btn bg-white p-4 rounded-lg border border-gray-200 hover:border-green-500 transition-colors text-left">
+                            <div class="flex items-center">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm mr-3">2</span>
+                                <span class="font-medium">Improvement Ideas</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">Give me specific improvement recommendations for my worst performing mines</p>
+                        </button>
+                        
+                        <button class="ai-suggestion-btn bg-white p-4 rounded-lg border border-gray-200 hover:border-green-500 transition-colors text-left">
+                            <div class="flex items-center">
+                                <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm mr-3">3</span>
+                                <span class="font-medium">Benchmarking</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">How do my mines compare to industry benchmarks?</p>
+                        </button>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div class="h-96 bg-gray-50 rounded-lg p-4 mb-4 overflow-y-auto custom-scrollbar" id="chatMessages">
+                            <div class="mb-3">
+                                <div class="bg-green-100 text-green-900 p-3 rounded-lg inline-block max-w-xs">
+                                    <p class="text-sm">Hello! I'm your AI carbon advisor. Ask me about your emissions data or optimization strategies.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="chatInput" placeholder="Ask about your carbon data..." 
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            <button id="sendChat" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenarios Tab -->
+                <div id="scenarios" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">🎯 What-if Scenario Simulator</h2>
+                        <p class="text-gray-600">Model how operational strategies impact emissions</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-1">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Simulator Controls</h3>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Fuel Usage</label>
+                                    <input type="range" min="50" max="150" value="100" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>50%</span>
+                                        <span>100%</span>
+                                        <span>150%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Electricity Usage</label>
+                                    <input type="range" min="50" max="150" value="100" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>50%</span>
+                                        <span>100%</span>
+                                        <span>150%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Transport Activity</label>
+                                    <input type="range" min="50" max="150" value="100" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>50%</span>
+                                        <span>100%</span>
+                                        <span>150%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Equipment Efficiency</label>
+                                    <input type="range" min="60" max="95" value="85" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>60%</span>
+                                        <span>85%</span>
+                                        <span>95%</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Carbon Offset Programs</label>
+                                    <input type="range" min="50" max="200" value="100" class="w-full">
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>50%</span>
+                                        <span>100%</span>
+                                        <span>200%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Impact Visualization</h3>
+                            <div class="grid grid-cols-2 gap-6 mb-6">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Original Gross Emissions</p>
+                                    <p class="text-2xl font-bold">104.6 tCO₂</p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Projected New Emissions</p>
+                                    <p class="text-2xl font-bold">87.3 tCO₂ <span class="text-green-600 text-base">-17.3 tCO₂</span></p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Total Reduction</p>
+                                    <p class="text-2xl font-bold">17.3 tCO₂ <span class="text-green-600 text-base">(16.5%)</span></p>
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-600 mb-1">Cost Savings Estimate</p>
+                                    <p class="text-2xl font-bold">$24,800 <span class="text-green-600 text-base">/yr</span></p>
+                                </div>
+                            </div>
+                            
+                            <h4 class="font-medium text-gray-900 mb-3">Emissions Trend: Actual vs. Projected</h4>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="scenarioChart"></canvas>
+                            </div>
+                            <div id="scenario-controls" class="flex justify-center space-x-4 mt-4">
+                                <button class="px-3 py-1 text-sm rounded-md bg-gray-200" data-param="fuel_usage">Fuel Usage</button>
+                                <button class="px-3 py-1 text-sm rounded-md bg-gray-200" data-param="electricity_usage">Electricity</button>
+                                <button class="px-3 py-1 text-sm rounded-md bg-gray-200" data-param="transport_activity">Transport</button>
+                                <button class="px-3 py-1 text-sm rounded-md bg-gray-200" data-param="equipment_efficiency">Efficiency</button>
+                                <button class="px-3 py-1 text-sm rounded-md bg-gray-200" data-param="carbon_offset_programs">Offsets</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Tab -->
+                <div id="insights" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">📋 AI-Powered Reports</h2>
+                        <p class="text-gray-600">Generate comprehensive reports on your emissions</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Report Configuration</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Report Type</label>
+                                    <select class="w-full px-3 py-2 rounded-lg border border-gray-300">
+                                        <option>Executive Summary</option>
+                                        <option>Technical Analysis</option>
+                                        <option>Compliance Report</option>
+                                        <option>Investment Proposal</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Focus States</label>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="rounded text-green-600">
+                                            <label class="ml-2 text-sm text-gray-700">Odisha</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="rounded text-green-600" checked>
+                                            <label class="ml-2 text-sm text-gray-700">Jharkhand</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="rounded text-green-600" checked>
+                                            <label class="ml-2 text-sm text-gray-700">Chhattisgarh</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="rounded text-green-600">
+                                            <label class="ml-2 text-sm text-gray-700">West Bengal</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input type="checkbox" class="rounded text-green-600">
+                                            <label class="ml-2 text-sm text-gray-700">Madhya Pradesh</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button id="generateReportBtn" class="w-full bg-green-600 text-white py-2 rounded-lg flex items-center justify-center mt-4">
+                                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                                    Generate Report with Gemini
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-2">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Generated Report</h3>
+                            <div id="reportOutput" class="border border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <i data-lucide="file-text" class="w-12 h-12 text-gray-400 mx-auto mb-4"></i>
+                                <h4 class="font-medium text-gray-900 mb-1">No Report Generated</h4>
+                                <p class="text-sm text-gray-600 mb-4">Generate a report to see it here</p>
+                                <p class="text-xs text-gray-500">Gemini API key required for report generation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Tab -->
+                <div id="leaderboard" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">🏆 Performance Leaderboard</h2>
+                        <p class="text-gray-600">Top performing mines by green score</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                            <div class="p-6 border-b border-gray-100">
+                                <h3 class="text-lg font-semibold text-gray-900">Your Mines Performance</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mine Name</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">State</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Green Score</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">Eco Mining Co.</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Jharkhand</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-green-600 h-2 rounded-full" style="width: 82%"></div>
+                                                    </div>
+                                                    <span>82.1</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">#2</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">Carbon Neutral Mine</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">West Bengal</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-green-600 h-2 rounded-full" style="width: 85%"></div>
+                                                    </div>
+                                                    <span>85.7</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">#1</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">Green Valley Mine</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Odisha</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                                        <div class="bg-green-600 h-2 rounded-full" style="width: 78%"></div>
+                                                    </div>
+                                                    <span>78.5</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">#4</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                            <div class="p-6 border-b border-gray-100">
+                                <h3 class="text-lg font-semibold text-gray-900">🌍 Global Leaderboard</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mine</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Green Score</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">admin</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Eco Mine Pro</td>
+                                            <td class="px-6 py-4 whitespace-nowrap font-bold">92.3</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">user2</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Green Valley</td>
+                                            <td class="px-6 py-4 whitespace-nowrap font-bold">88.7</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">user1</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Carbon Neutral</td>
+                                            <td class="px-6 py-4 whitespace-nowrap font-bold">85.7</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">user3</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Sustainable Ops</td>
+                                            <td class="px-6 py-4 whitespace-nowrap font-bold">84.2</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap">user1</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">Eco Mining Co.</td>
+                                            <td class="px-6 py-4 whitespace-nowrap font-bold">82.1</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Tab -->
+                <div id="realtime" class="tab-content animate-fade-in">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">📡 Smart Carbon Monitor</h2>
+                        <p class="text-gray-600">Real-time emissions tracking for coal mining operations</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Current Emissions</h3>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span class="text-sm text-green-600 font-medium">Live</span>
+                                </div>
+                            </div>
+                            <div class="text-3xl font-bold text-gray-900 mb-2" id="currentEmissions">87.3 tCO₂</div>
+                            <p class="text-sm text-gray-600">Current emissions rate</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Today's Total</h3>
+                            <div class="text-3xl font-bold text-gray-900 mb-2" id="todayTotal">2,184 tCO₂</div>
+                            <p class="text-sm text-green-600">-12% vs yesterday</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Status</h3>
+                            <div class="text-3xl font-bold text-gray-900 mb-2">Normal</div>
+                            <p class="text-sm text-gray-600">Operational status</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Carbon Sink</h3>
+                            <div class="text-3xl font-bold text-gray-900 mb-2">-12.4 tCO₂</div>
+                            <p class="text-sm text-green-600">Absorbed</p>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Efficiency</h3>
+                            <div class="text-3xl font-bold text-gray-900 mb-2">92%</div>
+                            <p class="text-sm text-green-600">Equipment efficiency</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Real-time Emissions Trend</h3>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="realtimeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Emissions Breakdown</h3>
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="breakdownChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Reduction Suggestions</h3>
+                        <div id="reductionSuggestions" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+
+        // --- Authentication ---
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch(`${API_URL}/token`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('accessToken', data.access_token);
+                    localStorage.setItem('username', username);
+                    
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    
+                    await initializeDashboard();
+                } else {
+                    alert('Login failed. Please check your credentials.');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('An error occurred during login.');
+            }
+        });
+
+        // --- Logout ---
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('username');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        });
+        
+        // --- API Helper ---
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('accessToken');
+            const headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (response.status === 401) {
+                // Token expired or invalid, force logout
+                document.getElementById('logoutBtn').click();
+            }
+            return response;
+        }
+
+        // --- Dashboard Initialization ---
+        async function initializeDashboard() {
+            const username = localStorage.getItem('username');
+            const response = await fetchWithAuth(`${API_URL}/users/me`);
+            const user = await response.json();
+
+            if (user.is_admin) {
+                document.getElementById('userBadge').className = 'admin-badge';
+                document.getElementById('userBadge').textContent = 'ADMIN PANEL';
+            } else {
+                document.getElementById('userBadge').textContent = `${username.toUpperCase()} DASHBOARD`;
+            }
+
+            await loadDashboardData();
+            initializeChat();
+            initializeRealtime();
+            lucide.createIcons();
+        }
+        
+        async function loadDashboardData() {
+            const username = localStorage.getItem('username');
+            const response = await fetchWithAuth(`${API_URL}/data/${username}`);
+            const data = await response.json();
+            
+            if (data && data.length > 0) {
+                updateMetrics(data);
+                updateCharts(data);
+            } else {
+                // Handle case with no data
+                updateMetrics([]);
+                updateCharts([]);
+            }
+        }
+
+        function updateMetrics(data) {
+            if (data.length === 0) {
+                document.querySelector('.metric-card:nth-child(1) p:nth-child(2)').textContent = `0 MT`;
+                document.querySelector('.metric-card:nth-child(2) p:nth-child(2)').textContent = `0 MT CO₂`;
+                document.querySelector('.metric-card:nth-child(3) p:nth-child(2)').textContent = `0.000`;
+                document.querySelector('.metric-card:nth-child(4) p:nth-child(2)').textContent = `0.0`;
+                return;
+            }
+            const totalProduction = data.reduce((sum, item) => sum + item.production, 0);
+            const totalEmissions = data.reduce((sum, item) => sum + item.total_emissions, 0);
+            const avgIntensity = data.reduce((sum, item) => sum + item.emission_intensity, 0) / data.length;
+            const avgGreenScore = data.reduce((sum, item) => sum + item.green_score, 0) / data.length;
+
+            document.querySelector('.metric-card:nth-child(1) p:nth-child(2)').textContent = `${(totalProduction / 1000).toFixed(1)}k MT`;
+            document.querySelector('.metric-card:nth-child(2) p:nth-child(2)').textContent = `${(totalEmissions / 1000).toFixed(1)}k MT CO₂`;
+            document.querySelector('.metric-card:nth-child(3) p:nth-child(2)').textContent = avgIntensity.toFixed(3);
+            document.querySelector('.metric-card:nth-child(4) p:nth-child(2)').textContent = avgGreenScore.toFixed(1);
+        }
+
+        let emissionsByMineChart, greenScoreChart;
+        function updateCharts(data) {
+            const mineNames = data.map(d => d.mine_name);
+            const emissions = data.map(d => d.total_emissions);
+            const greenScores = data.map(d => d.green_score);
+            const intensities = data.map(d => d.emission_intensity);
+
+            // Emissions by Mine Chart
+            const ctx1 = document.getElementById('emissionsByMineChart').getContext('2d');
+            if(emissionsByMineChart) emissionsByMineChart.destroy();
+            emissionsByMineChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: mineNames,
+                    datasets: [{
+                        label: 'Emissions (MT CO₂)',
+                        data: emissions,
+                        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (evt, activeElements) => {
+                        if (activeElements.length > 0) {
+                            const dataIndex = activeElements[0].index;
+                            const mineName = emissionsByMineChart.data.labels[dataIndex];
+                            showMineDetails(mineName);
+                        }
+                    }
+                }
+            });
+
+            // Green Score vs Emission Intensity Chart
+            const ctx2 = document.getElementById('greenScoreChart').getContext('2d');
+            if(greenScoreChart) greenScoreChart.destroy();
+            greenScoreChart = new Chart(ctx2, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Mines',
+                        data: data.map(d => ({x: d.emission_intensity, y: d.green_score})),
+                        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            if (data.length === 0) {
+                emissionsByMineChart.data.labels = [];
+                emissionsByMineChart.data.datasets[0].data = [];
+                emissionsByMineChart.update();
+
+                greenScoreChart.data.datasets[0].data = [];
+                greenScoreChart.update();
+            }
+
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // Initialize chat
+        function initializeChat() {
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendChat');
+            const chatMessages = document.getElementById('chatMessages');
+            const openRouterKeyInput = document.getElementById('openRouterKey');
+
+            async function sendMessage(message) {
+                if (!message) return;
+                
+                const apiKey = openRouterKeyInput.value;
+                if (!apiKey) {
+                    alert("Please enter your OpenRouter API key.");
+                    return;
+                }
+
+                // Add user message to UI
+                const userMsgDiv = document.createElement('div');
+                userMsgDiv.className = 'mb-3 text-right';
+                userMsgDiv.innerHTML = `<div class="bg-gray-200 text-gray-900 p-3 rounded-lg inline-block max-w-xs"><p class="text-sm">${message}</p></div>`;
+                chatMessages.appendChild(userMsgDiv);
+                chatInput.value = '';
+
+                // Call API
+                try {
+                    const response = await fetchWithAuth(`${API_URL}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question: message, api_key: apiKey })
+                    });
+                    const data = await response.json();
+
+                    // Add AI response to UI
+                    const aiMsgDiv = document.createElement('div');
+                    aiMsgDiv.className = 'mb-3';
+                    aiMsgDiv.innerHTML = `<div class="bg-green-100 text-green-900 p-3 rounded-lg inline-block max-w-xs"><p class="text-sm">${data.response}</p></div>`;
+                    chatMessages.appendChild(aiMsgDiv);
+                } catch (error) {
+                    console.error("Chat error:", error);
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            sendButton.addEventListener('click', () => sendMessage(chatInput.value));
+            chatInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    sendMessage(chatInput.value);
+                }
+            });
+
+            document.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const question = btn.querySelector('p').textContent;
+                    sendMessage(question);
+                });
+            });
+        }
+        
+        // Initialize other functionalities (Realtime, etc.)
+        let realtimeChart, breakdownChart;
+        function initializeRealtime() {
+            const ctxLine = document.getElementById('realtimeChart').getContext('2d');
+            realtimeChart = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Emissions (tCO₂)',
+                        data: [],
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        fill: true,
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const ctxPie = document.getElementById('breakdownChart').getContext('2d');
+            breakdownChart = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Scope 1', 'Scope 2', 'Scope 3', 'Carbon Sink', 'Offset'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(245, 158, 11, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(139, 92, 246, 0.8)'
+                        ],
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            setInterval(updateRealtimeData, 2000);
+        }
+
+        async function updateRealtimeData() {
+            const response = await fetch(`${API_URL}/realtime`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}) // Default settings
+            });
+            const data = await response.json();
+
+            // Update metrics
+            document.getElementById('currentEmissions').textContent = `${data.total_emissions.toFixed(1)} tCO₂`;
+
+            // Update line chart
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+            
+            if (realtimeChart.data.labels.length > 20) {
+                realtimeChart.data.labels.shift();
+                realtimeChart.data.datasets[0].data.shift();
+            }
+            
+            realtimeChart.data.labels.push(timeString);
+            realtimeChart.data.datasets[0].data.push(data.total_emissions);
+            realtimeChart.update();
+
+            // Update breakdown chart
+            breakdownChart.data.datasets[0].data = [
+                data.scope1,
+                data.scope2,
+                data.scope3,
+                Math.abs(data.carbon_sink),
+                Math.abs(data.carbon_offset)
+            ];
+            breakdownChart.update();
+            
+            updateSuggestions(data);
+        }
+
+        let scenarioChart;
+        let originalEmissions = 0;
+        async function initializeScenarios() {
+            const ctx = document.getElementById('scenarioChart').getContext('2d');
+            scenarioChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Projected Emissions Path',
+                            data: [],
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            document.querySelectorAll('#scenarios input[type="range"]').forEach(slider => {
+                slider.addEventListener('input', updateScenario);
+            });
+
+            document.querySelectorAll('#scenario-controls button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const param = e.target.getAttribute('data-param');
+                    updateScenarioGraph(param);
+                });
+            });
+            
+            // Fetch initial data to set baseline
+            const username = localStorage.getItem('username');
+            const response = await fetchWithAuth(`${API_URL}/data/${username}`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+                originalEmissions = data.reduce((sum, item) => sum + item.total_emissions, 0);
+                document.querySelector('#scenarios .grid .bg-gray-50:nth-child(1) p:nth-child(2)').textContent = `${(originalEmissions / 1000).toFixed(1)}k tCO₂`;
+                updateScenario();
+            }
+        }
+
+        async function updateScenario() {
+            const settings = {
+                fuel_usage: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(1)').value),
+                electricity_usage: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(2)').value),
+                transport_activity: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(3)').value),
+                equipment_efficiency: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(4)').value),
+                carbon_offset_programs: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(5)').value),
+            };
+
+            try {
+                const response = await fetchWithAuth(`${API_URL}/predict-scenario`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    const predictedEmissions = data.predicted_emissions;
+                    const savings = originalEmissions - predictedEmissions;
+                    const savingsPercentage = originalEmissions > 0 ? (savings / originalEmissions * 100) : 0;
+
+                    document.querySelector('#scenarios .grid .bg-gray-50:nth-child(2) p:nth-child(2)').innerHTML = `${(predictedEmissions / 1000).toFixed(1)}k tCO₂ <span class="text-green-600 text-base">${-(savings / 1000).toFixed(1)}k tCO₂</span>`;
+                    document.querySelector('#scenarios .grid .bg-gray-50:nth-child(3) p:nth-child(2)').innerHTML = `${(savings / 1000).toFixed(1)}k tCO₂ <span class="text-green-600 text-base">(${savingsPercentage.toFixed(1)}%)</span>`;
+
+                    if (scenarioChart.data.labels.length > 20) {
+                        scenarioChart.data.labels.shift();
+                        scenarioChart.data.datasets[0].data.shift();
+                    }
+
+                    const now = new Date();
+                    const timeString = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+                    scenarioChart.data.labels.push(timeString);
+                    scenarioChart.data.datasets[0].data.push(predictedEmissions);
+                    scenarioChart.update();
+                } else {
+                    console.error("Scenario prediction failed:", data.detail);
+                }
+            } catch (error) {
+                console.error("Error updating scenario:", error);
+            }
+        }
+
+        async function updateScenarioGraph(param) {
+            const settings = {
+                fuel_usage: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(1)').value),
+                electricity_usage: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(2)').value),
+                transport_activity: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(3)').value),
+                equipment_efficiency: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(4)').value),
+                carbon_offset_programs: parseInt(document.querySelector('#scenarios input[type="range"]:nth-of-type(5)').value),
+            };
+
+            const response = await fetchWithAuth(`${API_URL}/predict-scenario-range`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings, vary_param: param })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                scenarioChart.data.labels = data.map(d => d.x.toFixed(0));
+                scenarioChart.data.datasets[0].data = data.map(d => d.y);
+                scenarioChart.update();
+            }
+        }
+
+        function updateSuggestions(data) {
+            const suggestionsContainer = document.getElementById('reductionSuggestions');
+            suggestionsContainer.innerHTML = ''; // Clear existing suggestions
+
+            const suggestions = [
+                { icon: 'wrench', text: 'Optimize equipment maintenance', potential: '5-8%', condition: data.scope1 > 50 },
+                { icon: 'sun', text: 'Switch to renewable energy', potential: '15-20%', condition: data.scope2 > 30 },
+                { icon: 'truck', text: 'Implement electric vehicle fleet', potential: '10-12%', condition: data.scope3 > 40 },
+                { icon: 'recycle', text: 'Improve waste management', potential: '3-5%', condition: true },
+                { icon: 'lightbulb', text: 'Upgrade to LED lighting', potential: '1-2%', condition: data.scope2 > 20 },
+                { icon: 'leaf', text: 'Expand reforestation program', potential: '8-10% offset', condition: true }
+            ];
+
+            suggestions.filter(s => s.condition).forEach(s => {
+                const suggestionEl = document.createElement('div');
+                suggestionEl.className = 'p-4 bg-green-50 border border-green-200 rounded-lg';
+                suggestionEl.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <i data-lucide="${s.icon}" class="w-5 h-5 text-green-600 mt-0.5"></i>
+                        <div>
+                            <h4 class="font-medium text-green-900">${s.text}</h4>
+                            <p class="text-sm text-gray-700 mt-1">${s.potential} reduction potential</p>
+                        </div>
+                    </div>
+                `;
+                suggestionsContainer.appendChild(suggestionEl);
+            });
+            lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            initializeScenarios();
+            
+            const fileUploadInput = document.getElementById('fileUploadInput');
+            fileUploadInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                await uploadData(file);
+            });
+
+            const loadSyntheticDataBtn = document.getElementById('loadSyntheticDataBtn');
+            loadSyntheticDataBtn.addEventListener('click', async () => {
+                const response = await fetchWithAuth(`${API_URL}/generate-synthetic-data`);
+                const data = await response.json();
+                
+                // Convert JSON to CSV
+                const headers = Object.keys(data[0]);
+                const csv = [
+                    headers.join(','),
+                    ...data.map(row => headers.map(h => `"${row[h]}"`).join(','))
+                ].join('\n');
+                
+                const file = new File([csv], "synthetic_data.csv", { type: "text/csv" });
+                await uploadData(file);
+            });
+
+            async function uploadData(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetchWithAuth(`${API_URL}/process-data/`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        alert('Data loaded and processed successfully!');
+                        await loadDashboardData(); // Refresh dashboard
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Data processing failed: ${errorData.detail}`);
+                    }
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('An error occurred during data loading.');
+                }
+            }
+
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            generateReportBtn.addEventListener('click', async () => {
+                const geminiKey = document.getElementById('geminiKey').value;
+                if (!geminiKey) {
+                    alert('Please enter your Gemini API key.');
+                    return;
+                }
+
+                const reportType = document.querySelector('#insights select').value;
+                const focusStates = Array.from(document.querySelectorAll('#insights input[type="checkbox"]:checked')).map(cb => cb.nextElementSibling.textContent);
+
+                try {
+                    const response = await fetchWithAuth(`${API_URL}/report`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            api_key: geminiKey,
+                            report_type: reportType,
+                            focus_states: focusStates
+                        })
+                    });
+
+                    const data = await response.json();
+                    const reportOutput = document.getElementById('reportOutput');
+
+                    if (response.ok) {
+                        reportOutput.innerHTML = `<div class="text-left p-4">${data.report.replace(/\n/g, '<br>')}</div>`;
+                    } else {
+                        reportOutput.innerHTML = `<p class="text-red-500">${data.detail}</p>`;
+                    }
+                } catch (error) {
+                    console.error('Report generation error:', error);
+                }
+            });
+
+            const generateRoadmapBtn = document.getElementById('generateRoadmapBtn');
+            generateRoadmapBtn.addEventListener('click', async () => {
+                const geminiKey = document.getElementById('geminiKey').value;
+                if (!geminiKey) {
+                    alert('Please enter your Gemini API key.');
+                    return;
+                }
+
+                const roadmapOutput = document.getElementById('roadmapOutput');
+                roadmapOutput.innerHTML = '<p>Generating roadmap...</p>';
+
+                try {
+                    const response = await fetchWithAuth(`${API_URL}/roadmap`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: geminiKey })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        roadmapOutput.innerHTML = `<div class="text-left p-4">${data.roadmap.replace(/\n/g, '<br>')}</div>`;
+                    } else {
+                        roadmapOutput.innerHTML = `<p class="text-red-500">${data.detail}</p>`;
+                    }
+                } catch (error) {
+                    console.error('Roadmap generation error:', error);
+                    roadmapOutput.innerHTML = '<p class="text-red-500">An error occurred while generating the roadmap.</p>';
+                }
+            });
+
+            // Check if user is already logged in
+            if (localStorage.getItem('accessToken')) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                initializeDashboard();
+            }
+        });
+
+        async function showMineDetails(mineName) {
+            const mineDetailSection = document.getElementById('mineDetail');
+            const mineDetailContent = document.getElementById('mineDetailContent');
+            
+            const username = localStorage.getItem('username');
+            const response = await fetchWithAuth(`${API_URL}/data/${username}`);
+            const data = await response.json();
+            
+            const mineData = data.find(d => d.mine_name === mineName);
+
+            if (mineData) {
+                mineDetailContent.innerHTML = `
+                    <p><strong>Mine:</strong> ${mineData.mine_name}</p>
+                    <p><strong>State:</strong> ${mineData.state}</p>
+                    <p><strong>Type:</strong> ${mineData.mine_type}</p>
+                    <p><strong>Production:</strong> ${mineData.production.toFixed(2)} MT</p>
+                    <p><strong>Total Emissions:</strong> ${mineData.total_emissions.toFixed(2)} MT CO₂</p>
+                    <p><strong>Emission Intensity:</strong> ${mineData.emission_intensity.toFixed(3)}</p>
+                    <p><strong>Green Score:</strong> ${mineData.green_score.toFixed(1)}</p>
+                `;
+                mineDetailSection.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
