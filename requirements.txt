@@ -1,3 +1,4 @@
+#core libraries for phase2
 fastapi
 uvicorn
 pandas
@@ -11,3 +12,19 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 streamlit
+
+
+# Core Libraries for phase1
+streamlit==1.29.0
+pandas==2.1.4
+numpy==1.26.4
+plotly==5.19.0
+
+# Database & API
+sqlite3==0.0.1      # Typically included in Python stdlib
+requests==2.31.0
+
+# AI/ML Components
+google-generativeai==0.3.2
+scikit-learn==1.4.0
+openai==1.12.0
