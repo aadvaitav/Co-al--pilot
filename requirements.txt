@@ -1,4 +1,4 @@
-#core libraries for phase2
+#core libraries for api.py
 fastapi
 uvicorn
 pandas
